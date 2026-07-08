@@ -4,9 +4,8 @@ Run the full receipt lifecycle for one or all scenarios.
 
 Lifecycle steps (in order):
   stop_receipt   — stop_pro_receipt_api.py     kill running pro-receipt processes/ports
-  cleanup        — clean_up_data.py            drop + recreate + migrate the database (--yes auto-confirms)
+  cleanup        — clean_up_data.py            db:reset:full (drop tables → migrate → seed) --yes auto-confirms
   start_receipt  — start_pro_receipt_api.py    bun build (blocking), then open dev:host terminal
-  seed           — seed_data.py                seed reference data
   create         — create_receipts.py          create draft receipts
   submit         — submit_receipts.py          submit receipts (attaches line items then submits)
   approve        — approve_receipts.py         approve receipts
@@ -47,7 +46,6 @@ _STEPS: list[tuple[str, str, bool]] = [
     ("stop_receipt",  "stop_pro_receipt_api.py",  False),
     ("cleanup",       "clean_up_data.py",          False),
     ("start_receipt", "start_pro_receipt_api.py",  False),
-    ("seed",          "seed_data.py",              False),
     ("create",        "create_receipts.py",        True),
     ("submit",        "submit_receipts.py",        True),
     ("approve",       "approve_receipts.py",       True),
@@ -166,7 +164,7 @@ def main() -> int:
     active_steps = list(_STEPS)
 
     if args.skip_setup:
-        setup = {"stop_receipt", "cleanup", "start_receipt", "seed"}
+        setup = {"stop_receipt", "cleanup", "start_receipt"}
         active_steps = [(n, s, t) for n, s, t in active_steps if n not in setup]
 
     if args.from_step:

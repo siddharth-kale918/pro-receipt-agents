@@ -107,7 +107,9 @@ E2E_MENTION_NAME_PREFIX=playwright
 
 ## Usage
 
-### Full lifecycle (stop → cleanup → start → seed → create → submit → approve)
+### Full lifecycle (stop → cleanup → start → create → submit → approve)
+
+`cleanup` runs `bun run db:reset:full` which drops all tables, re-migrates, and re-seeds in one shot.
 
 ```bash
 cd scripts/data_generate
@@ -118,9 +120,9 @@ python run_lifecycle.py --scenario s1
 
 ```bash
 python stop_pro_receipt_api.py
-python clean_up_data.py --yes
+python clean_up_data.py --yes          # db:reset:full (reset + migrate + seed)
+python clean_up_data.py --yes --skip-seed  # reset + migrate only
 python start_pro_receipt_api.py
-python seed_data.py
 python create_receipts.py --scenario s1
 python submit_receipts.py --scenario s1
 python approve_receipts.py --scenario s1

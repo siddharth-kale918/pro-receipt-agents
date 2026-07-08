@@ -211,8 +211,9 @@ def main() -> int:
             return result.returncode
         print("  Build complete.\n")
 
-    print("Opening Terminal tab: bun run dev:host …")
-    _open_terminal_tab("pro-receipt dev", "bun run dev:host", codebase)
+    print("Opening Terminal tabs: bun run dev:api and bun run dev:host …")
+    _open_terminal_tab("pro-receipt dev:api", "bun run dev:api", codebase)
+    _open_terminal_tab("pro-receipt dev:host", "bun run dev:host", codebase)
 
     print("""
 Started:

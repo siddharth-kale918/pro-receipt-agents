@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 """
-Reset the pro-receipt database: drop → recreate → migrate.
+Reset the pro-receipt database: drop all tables → re-migrate → re-seed.
 
-Steps:
-  1. Terminate active connections and DROP DATABASE {target}
-  2. CREATE DATABASE {target}
-  3. Run `bun run db:migrate` in PRO_RECEIPT_CODEBASE_PATH
+Runs `bun run db:reset:full` in PRO_RECEIPT_CODEBASE_PATH, which:
+  1. Drops all rcp_* tables, enums, and the drizzle migration schema
+  2. Re-runs all migrations (db:migrate)
+  3. Re-seeds reference data (db:seed)
 
-Default connection config (override via .env.prime or env vars):
-    DB_HOST                   = 127.0.0.1
-    DB_PORT                   = 5443
-    DB_USERNAME               = pro-receipts
-    DB_PASSWORD               = pro-receipts
-    DB_DATABASE               = receipts_local
-    DB_SSL                    = false
-    PRO_RECEIPT_CODEBASE_PATH  (required for migration step)
+No superuser credentials needed — works with the app DB user.
 
-.env.prime is always copied to <PRO_RECEIPT_CODEBASE_PATH>/.env before migration runs.
+.env.prime is always synced to <PRO_RECEIPT_CODEBASE_PATH>/.env before running.
 
 Usage:
     python clean_up_data.py
     python clean_up_data.py --yes           # skip confirmation prompt
-    python clean_up_data.py --skip-migrate  # drop + recreate only, no migration
-    python clean_up_data.py --db my_db      # target a different database name
+    python clean_up_data.py --skip-seed     # reset + migrate only, skip seed
 """
 
 from __future__ import annotations
@@ -33,12 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import psycopg2
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
 _ROOT = Path(__file__).resolve().parent
-_DATA_DIR = _ROOT / "data"
 _PRIME = _ROOT / ".env.prime"
 
 
@@ -80,63 +67,40 @@ def _cfg(key: str, default: str = "") -> str:
     return str(v).strip() if v and str(v).strip() else default
 
 
+def _run(label: str, cmd: list[str], cwd: str) -> None:
+    print(f"  Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=cwd)
+    if result.returncode != 0:
+        print(f"  {label} failed (exit {result.returncode}).", file=sys.stderr)
+        sys.exit(result.returncode)
+    print(f"  {label} complete.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Reset pro-receipt database")
     parser.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
-    parser.add_argument("--skip-migrate", action="store_true", help="Drop + recreate only, no migration")
-    parser.add_argument("--db", default="", help="Target database name (default: DB_DATABASE from env)")
+    parser.add_argument("--skip-seed", action="store_true", help="Reset + migrate only, skip seed")
     args = parser.parse_args()
 
-    host = _cfg("DB_HOST", "127.0.0.1")
-    port = int(_cfg("DB_PORT", "5443"))
-    user = _cfg("DB_USERNAME", "pro-receipts")
-    password = _cfg("DB_PASSWORD", "pro-receipts")
-    target_db = args.db or _cfg("DB_DATABASE", "receipts_local")
     codebase = _cfg("PRO_RECEIPT_CODEBASE_PATH")
-
-    print(f"  Database: {host}:{port}/{target_db} (user={user})")
+    if not codebase:
+        print("ERROR: PRO_RECEIPT_CODEBASE_PATH is required in .env.prime", file=sys.stderr)
+        return 1
 
     if not args.yes:
-        ans = input(f"  Drop and recreate '{target_db}'? This is destructive. [y/N] ").strip().lower()
+        ans = input("  Drop all receipt tables and reseed? This is destructive. [y/N] ").strip().lower()
         if ans not in ("y", "yes"):
             print("  Aborted.")
             return 0
 
-    conn = psycopg2.connect(host=host, port=port, user=user, password=password, dbname="postgres")
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = conn.cursor()
-
-    cur.execute(
-        sql.SQL(
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s AND pid <> pg_backend_pid()"
-        ),
-        [target_db],
-    )
-    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(target_db)))
-    print(f"  Dropped '{target_db}'.")
-
-    cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(target_db)))
-    print(f"  Created '{target_db}'.")
-    cur.close()
-    conn.close()
-
-    if args.skip_migrate:
-        print("  Skipping migration (--skip-migrate).")
-        return 0
-
-    if not codebase:
-        print("  WARNING: PRO_RECEIPT_CODEBASE_PATH not set — skipping migration.", file=sys.stderr)
-        return 0
-
     _sync_prime(codebase)
 
-    print("  Running db:migrate …")
-    result = subprocess.run(["bun", "run", "db:migrate"], cwd=codebase)
-    if result.returncode != 0:
-        print(f"  db:migrate failed (exit {result.returncode}).", file=sys.stderr)
-        return result.returncode
+    if args.skip_seed:
+        _run("db:reset", ["bun", "run", "db:reset"], codebase)
+        _run("db:migrate", ["bun", "run", "db:migrate"], codebase)
+    else:
+        _run("db:reset:full", ["bun", "run", "db:reset:full"], codebase)
 
-    print("  db:migrate complete.")
     return 0
 
 
