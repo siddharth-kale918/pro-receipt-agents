@@ -4,6 +4,7 @@ Start the pro-receipt API service.
 
 Steps:
   0. Sync .env.prime → <codebase>/.env
+     Sync .env.prime.receipts_host → <codebase>/packages/receipts-components/.env
   1. Ensure Docker containers (postgres, kafka, kafka-ui, jaeger, localstack)
        — if a port is already bound by something other than our compose project,
          a free alternative port is chosen automatically and docker-compose.override.yml
@@ -16,6 +17,7 @@ Required .env.prime:
     PRO_RECEIPT_CODEBASE_PATH  — absolute path to the pro-receipt repo
 
 .env.prime is always copied to <PRO_RECEIPT_CODEBASE_PATH>/.env before any step runs.
+.env.prime.receipts_host is copied to <codebase>/packages/receipts-components/.env if it exists.
 
 Usage:
     python start_pro_receipt_api.py
@@ -39,6 +41,7 @@ import yaml
 
 _ROOT = Path(__file__).resolve().parent
 _PRIME = _ROOT / ".env.prime"
+_PRIME_RECEIPTS_HOST = _ROOT / ".env.prime.receipts_host"
 
 # Docker compose service ports: {internal_port: (env_var, default_host_port)}
 _COMPOSE_PORTS = {
@@ -74,7 +77,15 @@ def _sync_prime(codebase: str) -> None:
         return
     dest = Path(codebase) / ".env"
     dest.write_bytes(_PRIME.read_bytes())
-    print(f"  Synced .env.prime → {dest}\n")
+    print(f"  Synced .env.prime → {dest}")
+
+    if _PRIME_RECEIPTS_HOST.exists():
+        dest_host = Path(codebase) / "packages" / "receipts-components" / ".env"
+        dest_host.write_bytes(_PRIME_RECEIPTS_HOST.read_bytes())
+        print(f"  Synced .env.prime.receipts_host → {dest_host}")
+    else:
+        print(f"  NOTE: .env.prime.receipts_host not found — packages/receipts-components/.env not synced")
+    print()
 
 
 def _cfg(key: str, default: str = "") -> str:

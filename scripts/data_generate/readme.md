@@ -68,6 +68,18 @@ CORS_CREDENTIALS=true
 CORS_MAX_AGE=86400
 ```
 
+**`scripts/data_generate/.env.prime.receipts_host`** — synced to `pro-receipt/packages/receipts-components/.env` by `start_pro_receipt_api.py`:
+
+```dotenv
+# MFE backend URLs — point at localhost for local dev
+RECEIPTS_MFE_RECEIPTS_API_HOST=http://localhost:3003
+RECEIPTS_MFE_VENDOR_API_BASE_URL=https://api-vendor.procurement.ogintegration.us/api/v1
+RECEIPTS_MFE_PO_API_HOST=https://api-purchase-order.procurement.ogintegration.us
+RECEIPTS_MFE_ATLAS_BASE_URL=https://atlas.ogintegration.us
+RECEIPTS_MFE_TASKMASTER_BASE_URL=https://taskmaster.ogintegration.us
+RECEIPTS_MFE_UMS_MENTION_BASE_URL=https://user-mention-service.ogintegration.us/api/user-mention-service/v1
+```
+
 **`scripts/data_generate/.env.prime.e2e`** — synced to `pro-receipt/apps/e2e/.env` manually when running E2E tests:
 
 ```dotenv
@@ -85,12 +97,13 @@ E2E_AUTO_APPROVE_ENABLED=false
 E2E_MENTION_NAME_PREFIX=playwright
 ```
 
-## Env files in pro-receipt (2 total)
+## Env files in pro-receipt (3 total)
 
-| agents file | synced to |
-|---|---|
-| `.env.prime` | `pro-receipt/.env` (API config) |
-| `.env.prime.e2e` | `pro-receipt/apps/e2e/.env` (E2E test config) |
+| agents file | synced to | when |
+|---|---|---|
+| `.env.prime` | `pro-receipt/.env` | auto-synced on every script run |
+| `.env.prime.receipts_host` | `pro-receipt/packages/receipts-components/.env` | auto-synced by `start_pro_receipt_api.py` |
+| `.env.prime.e2e` | `pro-receipt/apps/e2e/.env` | copy manually before `bun run test:e2e` |
 
 ## Usage
 

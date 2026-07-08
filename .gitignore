@@ -5,4 +5,5 @@ __pycache__/
 .env
 scripts/data_generate/.env.prime
 scripts/data_generate/.env.prime.e2e
+scripts/data_generate/.env.prime.receipts_host
 scripts/data_generate/data/*_state_*.json
