@@ -2,10 +2,14 @@
 """
 Reset the pro-receipt database: drop all tables → re-migrate → re-seed.
 
-Runs `bun run db:reset:full` in PRO_RECEIPT_CODEBASE_PATH, which:
-  1. Drops all rcp_* tables, enums, and the drizzle migration schema
-  2. Re-runs all migrations (db:migrate)
-  3. Re-seeds reference data (db:seed)
+Runs these root-level bun scripts in sequence:
+  1. db:reset        — drop all rcp_* tables, enums, and drizzle migration schema
+  2. db:migrate      — re-run all migrations
+  3. db:seed         — re-seed reference data
+  4. db:setup:shared — set up shared tables
+
+Each step is run from the repo root so it picks up --env-file=.env (drizzle-kit
+needs this; db:reset:full's internal call does not re-pass --env-file).
 
 No superuser credentials needed — works with the app DB user.
 
@@ -95,11 +99,14 @@ def main() -> int:
 
     _sync_prime(codebase)
 
-    if args.skip_seed:
-        _run("db:reset", ["bun", "run", "db:reset"], codebase)
-        _run("db:migrate", ["bun", "run", "db:migrate"], codebase)
-    else:
-        _run("db:reset:full", ["bun", "run", "db:reset:full"], codebase)
+    # Run each step from the repo root so every command picks up --env-file via
+    # the root package.json scripts (db:reset:full's internal bun run db:migrate
+    # does NOT re-pass --env-file, so env vars may not propagate to drizzle-kit).
+    _run("db:reset", ["bun", "run", "db:reset"], codebase)
+    _run("db:migrate", ["bun", "run", "db:migrate"], codebase)
+    if not args.skip_seed:
+        _run("db:seed", ["bun", "run", "db:seed"], codebase)
+        _run("db:setup:shared", ["bun", "run", "db:setup:shared"], codebase)
 
     return 0
 
