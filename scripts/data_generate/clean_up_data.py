@@ -73,11 +73,31 @@ def _cfg(key: str, default: str = "") -> str:
 
 def _run(label: str, cmd: list[str], cwd: str) -> None:
     print(f"  Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd)
+    result = subprocess.run(cmd, cwd=cwd, env=os.environ.copy())
     if result.returncode != 0:
         print(f"  {label} failed (exit {result.returncode}).", file=sys.stderr)
         sys.exit(result.returncode)
     print(f"  {label} complete.")
+
+
+def _run_migrate(codebase: str) -> None:
+    """Invoke drizzle-kit directly from Python so DB_* vars reach it.
+
+    bun's --env-file vars live in bun's JS process.env and do NOT propagate
+    to grandchild OS processes. By spawning drizzle-kit ourselves, we pass
+    os.environ (already loaded from .env.prime) directly.
+    """
+    repo_dir = str(Path(codebase) / "packages" / "repo")
+    print(f"  Running: bun --bun drizzle-kit migrate  (cwd=packages/repo)")
+    result = subprocess.run(
+        ["bun", "--bun", "drizzle-kit", "migrate", "--config=./drizzle/drizzle.config.ts"],
+        cwd=repo_dir,
+        env=os.environ.copy(),
+    )
+    if result.returncode != 0:
+        print(f"  db:migrate failed (exit {result.returncode}).", file=sys.stderr)
+        sys.exit(result.returncode)
+    print("  db:migrate complete.")
 
 
 def main() -> int:
@@ -99,11 +119,8 @@ def main() -> int:
 
     _sync_prime(codebase)
 
-    # Run each step from the repo root so every command picks up --env-file via
-    # the root package.json scripts (db:reset:full's internal bun run db:migrate
-    # does NOT re-pass --env-file, so env vars may not propagate to drizzle-kit).
     _run("db:reset", ["bun", "run", "db:reset"], codebase)
-    _run("db:migrate", ["bun", "run", "db:migrate"], codebase)
+    _run_migrate(codebase)
     if not args.skip_seed:
         _run("db:seed", ["bun", "run", "db:seed"], codebase)
         _run("db:setup:shared", ["bun", "run", "db:setup:shared"], codebase)
