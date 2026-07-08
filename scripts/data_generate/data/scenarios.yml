@@ -1,0 +1,80 @@
+s1:
+  description: "Single receipt — draft, submit, approve against a real integration PO"
+  receipts:
+    - description: "Office Supplies"
+      receiptDate: "2026-07-08"
+      receivedBy: null
+      receivingDepartment: "Finance"
+      referenceNumber: "REF-001"
+      vendorDisplayId: "V-001"
+      eVendorId: 1
+      vendorName: "E2E Playwright - PO Receipt"
+      lineItems:
+        - poNumber: "PO-2026-001259"
+          lineDescription: "Pencils"
+          receivedQuantity: "1.00000"
+          acceptedQuantity: "1.00000"
+          rejectedQuantity: "0.00000"
+
+s2:
+  description: "Multi-receipt batch — two receipts against different PO lines"
+  receipts:
+    - description: "Stationery Order"
+      receiptDate: "2026-07-08"
+      receivedBy: null
+      receivingDepartment: "Operations"
+      referenceNumber: "REF-002A"
+      vendorDisplayId: "V-001"
+      eVendorId: 1
+      vendorName: "E2E Playwright - PO Receipt"
+      lineItems:
+        - poNumber: "PO-2026-001259"
+          lineDescription: "Pencils"
+          receivedQuantity: "2.00000"
+          acceptedQuantity: "2.00000"
+          rejectedQuantity: "0.00000"
+    - description: "Cleaning Supplies"
+      receiptDate: "2026-07-08"
+      receivedBy: null
+      receivingDepartment: "Facilities"
+      referenceNumber: "REF-002B"
+      vendorDisplayId: "V-001"
+      eVendorId: 1
+      vendorName: "E2E Playwright - PO Receipt"
+      lineItems:
+        - poNumber: "PO-2026-001259"
+          lineDescription: "Pencils"
+          receivedQuantity: "1.00000"
+          acceptedQuantity: "1.00000"
+          rejectedQuantity: "0.00000"
+
+s3:
+  description: "Draft-only — create receipts but skip submit/approve (useful for UI testing)"
+  receipts:
+    - description: "Draft Receipt - IT Equipment"
+      receiptDate: "2026-07-08"
+      receivedBy: null
+      receivingDepartment: "IT"
+      referenceNumber: "REF-003"
+      vendorDisplayId: "V-002"
+      eVendorId: 2
+      vendorName: "Tech Supplies Co"
+      lineItems: []
+
+s4:
+  description: "Partial receipt — received quantity less than PO quantity"
+  receipts:
+    - description: "Partial Delivery"
+      receiptDate: "2026-07-08"
+      receivedBy: null
+      receivingDepartment: "Warehouse"
+      referenceNumber: "REF-004"
+      vendorDisplayId: "V-001"
+      eVendorId: 1
+      vendorName: "E2E Playwright - PO Receipt"
+      lineItems:
+        - poNumber: "PO-2026-001259"
+          lineDescription: "Pencils"
+          receivedQuantity: "0.50000"
+          acceptedQuantity: "0.50000"
+          rejectedQuantity: "0.00000"
